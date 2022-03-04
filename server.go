@@ -4,15 +4,18 @@ import (
 	"log"
 	"os"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/question-store-api/graph"
-	"github.com/question-store-api/graph/generated"
+	"github.com/question-store-api/db"
+	"github.com/question-store-api/router"
 )
 
 const defaultPort = "8000"
+
+func initServer() *gin.Engine {
+	server := gin.Default()
+	router.Setup(server)
+	return server
+}
 
 func main() {
 	port := os.Getenv("PORT")
@@ -20,31 +23,11 @@ func main() {
 		port = defaultPort
 	}
 
-	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{"GET", "OST", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"},
-		MaxAge:       12 * 60 * 60,
-	}))
+	db.InitDB()
+	defer db.CloseDB()
 
-	r.POST("/", playgroundHandler())
-	r.POST("/query", gqlHandler())
+	server := initServer()
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(r.Run(":8000"))
-}
-
-func playgroundHandler() gin.HandlerFunc {
-	h := playground.Handler("GraphQL playground", "/")
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
-func gqlHandler() gin.HandlerFunc {
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
-	return func(c *gin.Context) {
-		srv.ServeHTTP(c.Writer, c.Request)
-	}
+	log.Fatal(server.Run(":8000"))
 }
