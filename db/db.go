@@ -44,7 +44,15 @@ func InitDB() {
 
 	DB = gormDB
 
-	DB.AutoMigrate(&model.User{}, &model.Todo{})
+	DB.AutoMigrate(
+		&model.Answerer{},
+		&model.Answer{},
+		&model.Questioner{},
+		&model.Question{},
+		&model.QuestionAnswer{},
+		&model.Project{},
+		&model.ProjectQuestion{},
+	)
 }
 
 func GetDB() *gorm.DB {
